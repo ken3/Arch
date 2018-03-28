@@ -1,0 +1,83 @@
+
+    Arch Linux (x86_64) 生成手順
+                                                                          作成: 2018-03-27
+                                                                          更新: 2018-03-28
+
+
+ 1. ホストシステムにrootユーザでログインする。
+    検証環境: Kali GNU/Linux 2017.1 Rolling
+    $ su   -
+
+ 2. 作業ディレクトリ /usr/src/Arch に bootstrap モジュールを展開する。
+    # cd /usr/src/Arch
+    # tar xvf archlinux-bootstrap-2018.03.01-x86_64.tar.gz
+    # mv root.x86_64 bootstrap
+
+ 3. bootstrapシステムをセットアップする。
+    # rm -f /etc/resolv.conf && touch /etc/resolv.con
+    # mount --bind /usr/src/Arch/bootstrap /usr/src/Arch/bootstrap
+    # cp -a patches/* bootstrap/
+    # ./arch-chroot /usr/src/Arch/bootstrap /bin/bash
+    # source /etc/profile
+    # pacman-key --init
+    # pacman-key --populate archlinux
+    # pacman -Syu
+
+ 4. ターゲットディスクに Arch Linux をインストールする。
+    # mount /dev/sda13 /mnt
+    # pacstrap -i /mnt base base-devel acpid
+
+ 5. 設定ファイルを作成する。
+    # genfstab -U -p /mnt >> /mnt/etc/fstab
+    # arch-chroot /mnt
+    # vi /etc/locale.gen ⇒ 以下の行を活かす。
+      en_US.UTF-8 UTF-8
+      ja_JP.UTF-8 UTF-8
+      ja_JP.EUC-JP EUC-JP
+    # locale-gen
+    # echo "#LANG=ja_JP.UTF-8" > /etc/locale.conf
+    # echo "KEYMAP=jp106" > /etc/vconsole.conf
+    # rm -f /etc/localtime
+    # ln -s /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+    # echo Arch > /etc/hostname
+    # vi  /etc/pacman.conf
+      XferCommand = /usr/bin/curl -C - -f %u > %o の行を活かす。
+      [multilib] のコメントを外して32bitパッケージを利用可能にする。
+    # pacman -Sy
+    # passwd ⇒ root
+
+ 6. ネットワークを設定する。
+    # vi /etc/dhcpcd.conf
+      interface enp0s25
+      static ip_address=192.168.120.100/24
+      static routers=192.168.120.20
+    # systemctl enable dhcpcd@enp0s25.service
+
+ 7. ACPIを設定する。
+    # pacman -S acpid
+    # systemctl enable acpid.service
+
+ 8. Xorgとデスクトップ環境を設定する。
+    # pacman -S xorg xorg-apps xorg-drivers xorg-fonts xorg-twm xterm
+    # pacman -S ttf-sazanami lightdm lightdm-gtk-greeter xfce4 openmotif
+    # systemctl enable lightdm.service
+
+ 9. ターゲットディスクをアンマウントする。
+    # exit
+    # cd /
+    # umount /mnt
+    # exit
+    # umount /usr/src/Arch/bootstrap
+
+10. Arch Linuxをブートローダに認識させる。
+    # shutdown -r 0
+    # update-grub
+
+
+【残件】
+    ・XorgのLANG設定,テキスト,キーマップの日本語化
+    ・Terminalの日本語対応手順
+    ・タイムゾーン設定
+
+                                                                                      以上
+
